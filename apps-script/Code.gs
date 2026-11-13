@@ -1,91 +1,91 @@
-/* ===== 旅行規劃 · Apps Script Web App 後台 =====
-   兩層門禁：
-     1) 部署設定：執行身分「存取者」＋ 存取權「僅 domain」或「特定使用者及群組」← 最重要
-     2) 下面名单嘅 code guard：部署設定萬一改錯都仲擋一層
-   每人一份行程：UserProperties 自動按 Google 帳號分隔，互不睇到。
-   更新流程：改完 code → 管理部署 → 編輯 → 產生新版本（/exec URL 唔變）。
-*/
-/* 邊個用到：
-   - ALLOWED_EMAILS：指定 email 名單（最準確）。填咗呢個，只有列咗嘅 email 入到。
-   - 想成個 domain 都用得：ALLOWED_EMAILS 留空 []，改用 ALLOWED_DOMAINS。
-   - 兩個都留空 = 淨係靠部署設定嗰層。
-   （部署嗰邊揀「特定使用者及群組」都係一層 Google 嘅門；呢度係雙保險） */
+/** ===== _email 白名單 gate ===== */
 const ALLOWED_EMAILS = ['yakh@ghs.edu.hk'];
-const ALLOWED_DOMAINS = []; // 想全 school 都得：清空上面名單，呢度填 ['ghs.edu.hk']
+const ALLOWED_DOMAINS = [];   // 例如 ['ghs.edu.hk']：留空名单时用域名放行
 
-const PKEY = '***';
-const CHUNK = 8000; // PropertiesService 每個 key 上限 9KB，留返位置
+const PFX = 'jp.trip.v1.';
+const CHUNK = 8000;
 
-function doGet() {
-  const email = Session.getActiveUser().getEmail() || '';
-  if (!accessOk(email)) {
-    return HtmlService.createHtmlOutput(
-      '<div style="font-family:sans-serif;padding:48px;max-width:560px;margin:0 auto">' +
-      '<h2>冇得入 🙅</h2><p>呢個 Google 帳號（<b>' + (email || '(攞唔到 email：部署設定可能唔啱，執行身分要揀「存取的使用者」)') + '</b>）' +
-      '唔喺授權名單入面。</p><p>如果你應該有權限，聯絡管理員 check 下 ALLOWED_EMAILS／ALLOWED_DOMAINS 同部署設定。</p></div>'
-    );
-  }
-  const t = HtmlService.createTemplateFromFile('index');
-  t._email = email;
-  return t.evaluate()
-    .setTitle('旅行規劃｜日系繪本風')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+function accessOk(email) {
+  if (!email) return false;
+  const e = String(email).toLowerCase();
+  if (ALLOWED_EMAILS.length) return ALLOWED_EMAILS.map(s => String(s).toLowerCase()).includes(e);
+  if (ALLOWED_DOMAINS.length) return ALLOWED_DOMAINS.some(d => e.endsWith('@' + String(d).toLowerCase()));
+  return true;
+}
+
+function meEmail() {
+  try { return String(Session.getActiveUser().getEmail() || ''); } catch (e) { return ''; }
 }
 
 function include(name) {
   return HtmlService.createHtmlOutputFromFile(name).getContent();
 }
 
-function accessOk(email) {
-  if (!email) return false;
-  const e = email.toLowerCase();
-  if (ALLOWED_EMAILS.length) return ALLOWED_EMAILS.some(x => x.toLowerCase() === e);
-  if (!ALLOWED_DOMAINS.length) return true; // 淨係靠部署設定
-  const at = e.lastIndexOf('@');
-  if (at < 0) return false;
-  const dom = e.slice(at + 1);
-  return ALLOWED_DOMAINS.some(d => { d = d.toLowerCase(); return dom === d || dom.endsWith('.' + d); });
+function denyHtml() {
+  return HtmlService.createHtmlOutput(
+    '<meta charset="utf-8"><div style="font-family:sans-serif;padding:48px;text-align:center;color:#3E3A39">' +
+    '<h2>冇得入</h2><p>呢個網站只開放俾指定 email 使用。<br>如果你係学校账号，请确认登录咗正确嘅 Google 账号再重新整理。</p></div>'
+  ).setTitle('冇得入');
 }
 
-/* ----- 每個使用者自己一份（雲端行程，分塊存） ----- */
-function me_() {
-  return Session.getActiveUser().getEmail() || '';
+function doGet() {
+  const email = meEmail();
+  if (!accessOk(email)) return denyHtml();
+  const t = HtmlService.createTemplateFromFile('index');
+  t._email = email;
+  return t.evaluate().setTitle('旅行規劃｜日系繪本風');
+}
+
+/** 每人一份：按 email 分 key 存喺 ScriptProperties（部署以 ME 執行，數據按存取者 email 分割） */
+function userKeys_(email) {
+  return PFX + String(email).toLowerCase() + '.';
 }
 
 function loadAll() {
-  if (!accessOk(me_())) throw new Error('呢個帳號冇授權');
-  const p = PropertiesService.getUserProperties();
-  const n = +(p.getProperty(PKEY + '.n') || 0);
-  let json = null, savedAt = 0;
-  if (n > 0) {
-    let s = '';
-    for (let i = 0; i < n; i++) s += p.getProperty(PKEY + '.' + i) || '';
-    json = s || null;
-    savedAt = +(p.getProperty(PKEY + '.t') || 0);
+  const email = meEmail();
+  if (!accessOk(email)) throw new Error('NO_ACCESS');
+  const props = PropertiesService.getScriptProperties();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const key = userKeys_(email);
+    const t = props.getProperty(key + 't');
+    let json = '';
+    for (let i = 0; ; i++) {
+      const c = props.getProperty(key + 'c' + i);
+      if (c === null) break;
+      json += c;
+    }
+    return { json: json || null, savedAt: t ? Number(t) : 0, email: email };
+  } finally {
+    lock.releaseLock();
   }
-  return { json: json, savedAt: savedAt, email: me_() };
 }
 
-function saveAll(str) {
-  if (!accessOk(me_())) throw new Error('呢個帳號冇授權');
-  if (typeof str !== 'string' || !str.length) throw new Error('空資料');
-  if (str.length > 400000) throw new Error('資料過大（>400KB）');
-  const p = PropertiesService.getUserProperties();
-  const oldN = +(p.getProperty(PKEY + '.n') || 0);
-  const chunks = [];
-  for (let i = 0; i < str.length; i += CHUNK) chunks.push(str.slice(i, i + CHUNK));
-  chunks.forEach(function (c, i) { p.setProperty(PKEY + '.' + i, c); });
-  for (let i = chunks.length; i < oldN; i++) p.deleteProperty(PKEY + '.' + i); // 清走剩低嘅舊塊
-  p.setProperty(PKEY + '.n', String(chunks.length));
-  p.setProperty(PKEY + '.t', String(Date.now()));
-  return { savedAt: Date.now(), email: me_() };
+function saveAll(json) {
+  const email = meEmail();
+  if (!accessOk(email)) throw new Error('NO_ACCESS');
+  const s = String(json || '');
+  const key = userKeys_(email);
+  const props = PropertiesService.getScriptProperties();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    for (const k of props.getKeys()) if (k.indexOf(key) === 0) props.deleteProperty(k);
+    let i = 0;
+    for (let off = 0; off < s.length; off += CHUNK) props.setProperty(key + 'c' + i++, s.slice(off, off + CHUNK));
+    props.setProperty(key + 't', String(Date.now()));
+    return { savedAt: Date.now(), email: email };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
-/* 清自己嗰份（想重來喺編輯器行一次呢個 function，要用返自己個帳號執行） */
 function resetMine() {
-  const p = PropertiesService.getUserProperties();
-  const n = +(p.getProperty(PKEY + '.n') || 0);
-  for (let i = 0; i < n; i++) p.deleteProperty(PKEY + '.' + i);
-  p.deleteProperty(PKEY + '.n');
-  p.deleteProperty(PKEY + '.t');
+  const email = meEmail();
+  if (!accessOk(email)) throw new Error('NO_ACCESS');
+  const props = PropertiesService.getScriptProperties();
+  const key = userKeys_(email);
+  for (const k of props.getKeys()) if (k.indexOf(key) === 0) props.deleteProperty(k);
+  return { cleared: true, email: email };
 }
