@@ -1,0 +1,43 @@
+{
+  "trip": {
+    "name": "北海道 2027 春｜札幌 × 星野 TOMAMU",
+    "destination": "札幌／Tomamu（北海道）",
+    "startDate": "2027-03-25",
+    "endDate": "",
+    "timezone": "Asia/Tokyo",
+    "adults": 2,
+    "children": 0,
+    "childAges": "",
+    "currency": "JPY",
+    "settleCurrency": "HKD",
+    "rate": 0.055,
+    "dayStart": "06:00",
+    "dayEnd": "22:30"
+  },
+  "events": [
+    { "id": "hk27-0325-flight", "date": "2027-03-25", "start": "12:45", "durationMin": 110, "category": "flight", "mode": "plane",
+      "name": "ANA HN65 HND→CTS（落地 14:35）", "address": "Haneda Airport", "locked": true, "cost": null, "costWho": "person",
+      "notes": "你提供：落地 14:35；起飛 12:45 屬推算（HND→CTS 約 1h50m），請以 ANA 實際時間表為準。編號寫住 HN65——ANA 通常做 NH（例如 NH65），如係 NH65 請雙擊改返名。" },
+    { "id": "hk27-0325-bus", "date": "2027-03-25", "start": "15:20", "durationMin": 85, "category": "transit", "mode": "bus",
+      "name": "新千歳機場 → 札幌站（機場巴士／JR 直通）", "legNote": "新千歳空港 → 札幌站前", "address": "New Chitose Airport Terminal", "locked": false, "cost": null, "costWho": "person",
+      "notes": "落地後通關＋行李約 45 分鐘，15:20 上車。中央巴士約 90 分（≈¥1,350）或 JR 空港特急約 74 分（≈¥1,150），2027 收費時間請查。巴士直線去酒店。" },
+    { "id": "hk27-0325-hotel", "date": "2027-03-25", "start": "16:50", "durationMin": 310, "category": "stay",
+      "name": "入住：The New Otani Inn Sapporo（站前）", "address": "New Otani Inn Sapporo", "locked": true, "cost": null, "costWho": "group",
+      "notes": "酒店地址：札幌市中央区北2条西1-1-1（060-0002），札幌站南口步行約 5 分鐘。你寫「札幌站前競速酒店」：跟第二日 07:40 接駁上車地點（New Otani Inn 同一個地址）假設埋晒都係呢間。如果其實係另一間酒店，雙擊改名稱同地址。住宿費請自己補（未計）。" },
+    { "id": "hk27-0326-break", "date": "2027-03-26", "start": "06:30", "durationMin": 45, "category": "food",
+      "name": "早餐（酒店）", "address": "New Otani Inn Sapporo", "locked": false, "cost": null, "costWho": "person",
+      "notes": "你指定 06:30 食早餐；07:40 接駁巴士開，建議 07:25 前食完喺大堂等。" },
+    { "id": "hk27-0326-shuttle", "date": "2027-03-26", "start": "07:40", "durationMin": 115, "category": "transit", "mode": "bus",
+      "name": "接駁巴士：New Otani Inn → 星野 TOMAMU", "legNote": "札幌（New Otani Inn 北2西1）→ TOMAMU", "address": "New Otani Inn Sapporo", "locked": false, "cost": null, "costWho": "person",
+      "notes": "星野往復接駁位少、要事前預約（時間／費用／上車點以星野官方最新資料為準，請確認已唔已預約）。後備：特急 Okozora／Cassiopeia 札幌→Tomamu 站約 1h45（≈¥7,000），再搭酒店免費接駁約 5 分鐘。提前 10 分鐘到上車點。" },
+    { "id": "hk27-0326-risonare", "date": "2027-03-26", "start": "09:35", "durationMin": 745, "category": "stay",
+      "name": "RISONARE by Hoshino Resorts TOMAMU（寄行李／Check-in）", "address": "RISONARE TOMAMU", "locked": true, "cost": null, "costWho": "group",
+      "notes": "正式 Check-in 15:00；早到可以先寄行李出去玩。玩嘅選擇：Tomamu Skiing Area（3月底仲有粉雪尾段）／Ice Village「MIZU-MIZU」（通常 12 月中開到 3 月初—2027 期初春開唔開定要查）／雲海平台（5月先至開始，3月無雲海）／酒店內 Activity。住宿費未計，自己補。" },
+    { "id": "hk27-0326-hall", "date": "2027-03-26", "start": "18:30", "durationMin": 90, "category": "food",
+      "name": "晚餐：HALL 自助餐（TOMAMU 主樓 1F 大食堂）", "address": "Hoshino Resorts TOMAMU", "locked": false, "cost": null, "costWho": "person",
+      "notes": "你講嘅 HAL 應該係主樓 1F 自助餐餐廳「HALL」：晚市分多場、每場約 50 分鐘（18:00～20:30 之間開檔），要預約（官網／APP／前台）——暫時排咗 18:30 場，2027 初春場次時間請查。餐價成人約 ¥9,000-11,000／人（2025-26 參考，estimate）。" },
+    { "id": "hk27-0327-forest", "date": "2027-03-27", "start": "08:00", "durationMin": 75, "category": "food",
+      "name": "早餐：森林餐廳（RISONARE 內 Forest）", "address": "RISONARE TOMAMU", "locked": false, "cost": null, "costWho": "person",
+      "notes": "RISONARE 住客早餐通常喺 Forest 餐廳（約 07:00-10:00 兩個時段入場，以入住當日安排為準）— 暫時排 08:00。第 3 日之後全部未 plan：行程日曆留空，諗到就 FAB「＋」加。" }
+  ]
+}
