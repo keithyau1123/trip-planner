@@ -233,7 +233,44 @@ const MapX = (() => {
     if (mode === 'leaflet' && !leaf && el) { await drawLeaflet([], false); }
   }
 
-  return { init, showDay, setKey, get mode() { return mode; } };
+  /* A→B 公共交通班次（Google Directions TRANSIT）：幾個方案一次過顯示，
+     等於「miss 咗呢班，接住仲有邊班」；出發時間可將來未來任何一刻。
+     冇 Google（leaflet 模式）就回 NO_KEY，由 app.js 彈提示。 */
+  function transitSearch(qa, qb, departMs) {
+    return new Promise(resolve => {
+      const g = window.google;
+      if (!g || !g.maps || !g.maps.DirectionsService) { resolve({ error: 'NO_KEY' }); return; }
+      const req = {
+        origin: qa, destination: qb,
+        travelMode: 'TRANSIT',
+        provideRouteAlternatives: true,
+      };
+      if (g.maps.UnitSystem) req.unitSystem = g.maps.UnitSystem.METRIC;
+      if (departMs) req.departureTime = new Date(departMs);
+      new g.maps.DirectionsService().route(req, (res, status) => {
+        if (status !== 'OK' || !res || !res.routes || !res.routes.length) { resolve({ error: String(status || 'ZERO_RESULTS') }); return; }
+        resolve({
+          routes: res.routes.slice(0, 5).map(r => ({
+            summary: r.summary || '',
+            legs: (r.legs || []).map(l => ({
+              mode: String(l.travel_mode || 'WALKING').toUpperCase(),
+              line: (l.vehicle && l.vehicle.name) || '',
+              short: (l.vehicle && l.vehicle.short_names) ? l.vehicle.short_names.join('/') : '',
+              head: l.head_sign || '',
+              from: l.start_address || '',
+              to: l.end_address || '',
+              dep: (l.departure_time && l.departure_time.getTime) ? l.departure_time.getTime() : null,
+              arr: (l.arrival_time && l.arrival_time.getTime) ? l.arrival_time.getTime() : null,
+              dur: (l.duration && l.duration.value) ? l.duration.value : null,
+              dist: (l.distance && l.distance.text) || '',
+            })),
+          })),
+        });
+      });
+    });
+  }
+
+  return { init, showDay, setKey, transitSearch, get mode() { return mode; } };
 })();
 
 function navUrl(e) {

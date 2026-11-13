@@ -38,10 +38,12 @@ clasp push
 
 ## 部署（最關鍵，兩個掣一定要啱）
 
-1. 改 `Code.gs` 頂部 `ALLOWED_DOMAINS = ['你嘅domain.com']`（例如 `['mycompany.com.hk']`；留空 `[]` 即淨係靠部署設定）
+1. 校對 `Code.gs` 頂部兩個名單：
+   - `ALLOWED_EMAILS = ['yakh@ghs.edu.hk']` ← **指定 email 名單**（最準確；只有列咗嘅 email 入到，其他人見到「冇得入」）
+   - `ALLOWED_DOMAINS = []` ← 想**成個 domain** 都得就用呢個（例如 `['ghs.edu.hk']`），同時將上面名單清空
 2. 儲存 → **部署 → 新版本**（或首次：部署 → 全新部署 → 類型「網頁應用程式」）
    - **執行身分：存取的使用者**（「執行為使用者存取」）← 唔係「我」！做錯會每人見到空 email、雲端同步唔到
-   - **有權存取的使用者：僅 <你嘅 domain>（完整網域存取）** ← 呢個先係「指定 email domain 先入到」嘅正門
+   - **有權存取的使用者**：想指定 email → 揀「特定使用者及群組」逐個加 email；想全 domain → 揀「僅 <你嘅 domain>」。code 入面嘅名單係雙保險，兩邊保持一致最穩陣
 3. 複製 Web app URL（結尾 `/exec`），用 domain 內帳號開
 
 首次開會有一個 Google 授權同意頁（Accessing your Google… 揀 Allow）；之後每次開：

@@ -938,6 +938,113 @@ setInterval(() => {
   else updateTimelineEffects();
 }, 15000);
 
+/* ---------- 點樣去（A→B 公共交通班次，Google Directions TRANSIT） ---------- */
+function transitQuery(e) { return (e.address || e.name || '').trim(); }
+function transitAvailable() {
+  return MapX.mode === 'google' || !!(window.google && window.google.maps && window.google.maps.DirectionsService);
+}
+function transitEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function transitDepartMs(dateStr, timeStr) {
+  const p = dateStr.split('-').map(Number);
+  const t = (timeStr || '09:00').split(':').map(Number);
+  if ((state.trip.timezone || 'Asia/Tokyo') === 'Asia/Tokyo') return Date.UTC(p[0], p[1] - 1, p[2], t[0], t[1]) - 9 * 3600e3;
+  return new Date(p[0], p[1] - 1, p[2], t[0], t[1]).getTime();
+}
+function tzHM(ms) {
+  if (!ms) return '';
+  if ((state.trip.timezone || 'Asia/Tokyo') === 'Asia/Tokyo') { const d = new Date(ms + 9 * 3600e3); return pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()); }
+  const d = new Date(ms); return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+function openTransit() {
+  if (!transitAvailable()) { toast('搵實際班次要用 Google Maps key：喺 ⚙ 設定輸入 key（專案要開通 Directions API）；開源地圖淨係畫到線，查唔到車班次'); return; }
+  const evts = evSorted(state.events.filter(e => transitQuery(e)));
+  if (evts.length < 2) { toast('最少要有兩個有名稱／地址嘅地點先至用到（地點編輯入面可以填地址）'); return; }
+  const mk = (sel, wantId) => {
+    sel.innerHTML = '';
+    evts.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.id; o.textContent = `${e.date} ${e.start} ${e.name}`;
+      if (e.id === wantId) o.selected = true;
+      sel.appendChild(o);
+    });
+  };
+  mk($('#trFrom'), evts[0].id);
+  const qA = transitQuery(evts[0]);
+  const eB = evts.find(e => transitQuery(e) !== qA) || evts[evts.length - 1];
+  mk($('#trTo'), eB.id);
+  const days = getDays();
+  const dsel = $('#trDate'); dsel.innerHTML = '';
+  const all = days.includes(evts[0].date) ? days : [...days, evts[0].date].sort();
+  all.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d + `（第 ${all.indexOf(d) + 1} 天）`;
+    if (d === evts[0].date) o.selected = true;
+    dsel.appendChild(o);
+  });
+  $('#trTime').value = evts[0].start || '09:00';
+  $('#trResults').innerHTML = '';
+  openOverlay('transitModal');
+}
+let trBusy = false;
+function runTransit() {
+  if (trBusy) return;
+  const eA = state.events.find(e => e.id === $('#trFrom').value);
+  const eB = state.events.find(e => e.id === $('#trTo').value);
+  if (!eA || !eB) return;
+  if (eA.id === eB.id) { toast('起點同終點要唔同地點㗎'); return; }
+  const departMs = transitDepartMs($('#trDate').value, $('#trTime').value);
+  if (departMs < Date.now() - 60e3) { toast('出發時間已經過咗（行程日係未來就冇事）；改返日子／時間'); return; }
+  trBusy = true;
+  const btn = $('#trGoBtn');
+  btn.disabled = true; btn.textContent = '搵緊…';
+  $('#trResults').innerHTML = '<p class="hint">⏳ 搵緊班次，要 1–3 秒…</p>';
+  MapX.transitSearch(transitQuery(eA), transitQuery(eB), departMs).then(r => {
+    trBusy = false; btn.disabled = false; btn.textContent = '搵班次';
+    $('#trResults').innerHTML = r.error ? transitErrHtml(r.error) : transitRoutesHtml(r.routes, departMs);
+  });
+}
+function transitErrHtml(err) {
+  const hints = {
+    NO_KEY: '未輸入 Google Maps key（⚙ 設定填 key 先至查到班次）',
+    REQUEST_DENIED: 'key 未開通 Directions API，或者 key 有來源限制',
+    INVALID_REQUEST: 'Google 搵唔到其中一個地點：將該地點嘅地址改做清楚啲嘅站名／POI 名',
+    ZERO_RESULTS: '兩個地點之間查唔到公共交通：試下改用對近嘅站名做起點／終點',
+  };
+  return `<p class="hint">查唔work：${transitEsc(err)}${hints[err] ? '——' + hints[err] : ''}。改起點／終點或時間再試。</p>`;
+}
+function transitRoutesHtml(routes, departMs) {
+  let html = '';
+  routes.forEach((r, i) => {
+    let run = departMs, totDur = 0;
+    const legHtml = r.legs.map(l => {
+      const dep = l.dep || run, arr = l.arr || dep + (l.dur || 0) * 1000;
+      run = arr; totDur += (l.dur || 0);
+      const mins = Math.max(1, Math.round((l.dur || 0) / 60));
+      if (l.mode === 'WALKING') {
+        return `<div class="tr-leg"><span class="tr-ico">🚶</span><div>行 ${mins} 分鐘${l.to ? `<span class="tr-addr">${transitEsc(l.to)}</span>` : ''}</div></div>`;
+      }
+      if (l.mode === 'DRIVING') {
+        return `<div class="tr-leg"><span class="tr-ico">🚕</span><div><b>計程車／自駕</b> ${tzHM(dep)} 上車 → ${tzHM(arr)} 落車（${mins} 分鐘）${l.dist ? ` ${transitEsc(l.dist)}` : ''}${l.from ? `<span class="tr-addr">${transitEsc(l.from)} → ${transitEsc(l.to)}</span>` : ''}</div></div>`;
+      }
+      const icon = /bus|巴士|バ[スス]|auto|public transit line/i.test(l.line + ' ' + l.short) && !/線|線|rail|subway|tram/i.test(l.line) ? '🚌' : '🚃';
+      const lineTxt = transitEsc(l.line || l.short || '公共交通工具');
+      const extra = [];
+      if (l.short && transitEsc(l.short) !== lineTxt) extra.push(`（${transitEsc(l.short)}）`);
+      if (l.head) extra.push(` · 往 ${transitEsc(l.head)}`);
+      return `<div class="tr-leg"><span class="tr-ico">${icon}</span><div><b>${lineTxt}</b>${extra.join('')} ${tzHM(dep)} 上車 → ${tzHM(arr)} 落車（${mins} 分鐘）${l.dist ? ` ${transitEsc(l.dist)}` : ''}${l.from ? `<span class="tr-addr">${transitEsc(l.from)} → ${transitEsc(l.to)}</span>` : ''}</div></div>`;
+    }).join('');
+    const first = r.legs[0], last = r.legs[r.legs.length - 1];
+    const depT = (first && first.dep) || departMs;
+    const arrT = (last && last.arr) || departMs + totDur * 1000;
+    html += `<div class="tr-card"><h4>方案 ${i + 1}｜${tzHM(depT)} 上車 → ${tzHM(arrT)} 到（全程 ${Math.round(totDur / 60)} 分鐘）${r.summary ? ` · ${transitEsc(r.summary)}` : ''}</h4>${legHtml}</div>`;
+  });
+  if (routes.length > 1) html += '<p class="hint">幾個方案同時顯示＝假設頭班 miss 咗，接住仲可以搭邊班；想再等遲啲就加大出發時間再搵。</p>';
+  return html;
+}
+$('#transitBtn').addEventListener('click', openTransit);
+$('#trGoBtn').addEventListener('click', runTransit);
+$('#trCloseBtn').addEventListener('click', closeOverlay);
+
 /* ---------- 啟動 ---------- */
 function maybeWelcome() {
   if (!state.events.length && !lsGet('jp-trip-welcomed')) {

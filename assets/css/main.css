@@ -50,6 +50,17 @@ h1,h2,h3{margin:0}
 .eyebtn .eyeicon{width:18px;height:18px;fill:var(--ink)}
 .eyetotal{font-size:13px;font-weight:700}
 .cloudchip{font-size:12px;padding:3px 10px;border:2px dashed var(--ink);border-radius:999px;background:var(--paper);color:var(--muted, #6d6862);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.transit-btn{border:2px solid var(--ink);background:#fff;border-radius:10px;padding:5px 10px;font-size:13px;cursor:pointer;box-shadow:var(--shadow, 2px 2px 0 rgba(62,58,57,.18))}
+.transit-btn:hover{background:var(--stay, #A8D3E6)}
+.tr-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.tr-fields label{display:flex;flex-direction:column;font-size:13px;gap:4px}
+.tr-fields select,.tr-fields input{border:2px solid var(--ink);border-radius:10px;padding:6px 8px;background:#fff;font-size:13.5px}
+.tr-results{max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:10px;margin:6px 0}
+.tr-card{border:2px solid var(--ink);border-radius:12px;background:#fff;padding:10px 12px;box-shadow:var(--shadow, 2px 2px 0 rgba(62,58,57,.18))}
+.tr-card h4{margin:0 0 6px;font-size:14.5px}
+.tr-leg{display:flex;gap:8px;align-items:baseline;font-size:13.5px;padding:4px 0;border-top:1.5px dashed rgba(62,58,57,.25)}
+.tr-leg .tr-ico{flex:none}
+.tr-leg .tr-addr{display:block;color:#6d6862;font-size:12px}
 .tabbar{display:flex;gap:8px}
 .tab{border:var(--bw) solid var(--ink);background:#fff;border-radius:14px;padding:7px 14px;
   cursor:pointer;font-size:14px;box-shadow:var(--shadow)}
