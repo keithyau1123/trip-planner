@@ -1,0 +1,54 @@
+{
+  "trip": {
+    "name": "東京七天六夜（示範）",
+    "destination": "東京",
+    "timezone": "Asia/Tokyo",
+    "startDate": "2026-12-05",
+    "endDate": "2026-12-11",
+    "currency": "JPY",
+    "settleCurrency": "HKD",
+    "rate": 0.055,
+    "adults": 2,
+    "children": 1,
+    "childAges": "7",
+    "dayStart": "08:30",
+    "dayEnd": "21:30"
+  },
+  "events": [
+    { "date": "2026-12-05", "start": "14:20", "durationMin": 180, "category": "flight", "mode": "plane", "name": "HK✈NRT 抵達航班（示範）", "address": "Narita Airport Terminal 1", "cost": null, "costWho": "person", "notes": "待確認：實際航班", "locked": false },
+    { "date": "2026-12-05", "start": "17:30", "durationMin": 80, "category": "transit", "mode": "train", "name": "N'EX 機場特快", "address": "", "legNote": "成田 → 東京駅", "cost": 3250, "costWho": "person", "notes": "票價待確認", "locked": false },
+    { "date": "2026-12-05", "start": "19:00", "durationMin": 30, "category": "stay", "name": "入住：淺草-view 飯店（示範）", "address": "東京都台東区浅草", "cost": 28000, "costWho": "group", "notes": "兩晚合計示例", "locked": true },
+
+    { "date": "2026-12-06", "start": "09:00", "durationMin": 120, "category": "sight", "name": "淺草寺・雷門", "address": "東京都台東区浅草2-3-1", "cost": 0, "costWho": "person", "notes": "", "locked": false },
+    { "date": "2026-12-06", "start": "11:00", "durationMin": 90, "category": "food", "name": "天婦羅老店午餐", "address": "浅草 天ぷら 大川", "cost": 3500, "costWho": "person", "notes": "價位待確認", "locked": false },
+    { "date": "2026-12-06", "start": "13:30", "durationMin": 150, "category": "sight", "name": "東京鐵塔", "address": "東京都港区芝公園4-2-8", "cost": 1200, "costWho": "person", "notes": "", "locked": false },
+    { "date": "2026-12-06", "start": "17:00", "durationMin": 120, "category": "sight", "name": "TEAMLAB Planets", "address": "東京都港区六本木3-6-3", "cost": 3800, "costWho": "person", "notes": "時段待預約", "locked": false },
+    { "date": "2026-12-06", "start": "12:30", "durationMin": 20, "category": "transit", "mode": "walk", "name": "仲見世通步行", "cost": 0, "costWho": "group", "locked": false },
+
+    { "date": "2026-12-07", "start": "09:30", "durationMin": 240, "category": "sight", "name": "寶可樂中心（寶貝球、皮卡丘）", "address": "东京塔 Pokemon Center TOKYO", "cost": 0, "costWho": "person", "locked": false },
+    { "date": "2026-12-07", "start": "14:30", "durationMin": 60, "category": "sight", "name": "台場摩天輪", "address": "お台場デックス東京ビーチ シーサイド展望MM57", "cost": 1000, "costWho": "person", "locked": false },
+    { "date": "2026-12-07", "start": "10:00", "durationMin": 45, "category": "transit", "mode": "metro", "name": "銀座線→ゆりかもめ", "legNote": "淺草 → 台場", "cost": 420, "costWho": "person", "locked": false },
+
+    { "date": "2026-12-08", "start": "09:00", "durationMin": 300, "category": "sight", "name": "鐵道博物館", "address": "さいたま市北区大成町4-117", "cost": 1000, "costWho": "person", "locked": false },
+    { "date": "2026-12-08", "start": "16:00", "durationMin": 180, "category": "sight", "name": "麵包超人儿童博物馆", "address": "川崎市川崎区東扇島14-1", "cost": 2200, "costWho": "person", "notes": "兒童票價待確認", "locked": false },
+
+    { "date": "2026-12-09", "start": "09:00", "durationMin": 420, "category": "sight", "name": "日本環球影城：任天堂世界＋F1 體驗", "address": "大阪市此花区桜島2-1-33", "cost": 10900, "costWho": "person", "notes": "含快速通行待加購", "locked": false },
+    { "date": "2026-12-09", "start": "07:30", "durationMin": 150, "category": "transit", "mode": "shinkansen", "name": "新幹線 東京→新大阪", "legNote": "東京 → 新大阪", "cost": 14500, "costWho": "person", "locked": false },
+
+    { "date": "2026-12-10", "start": "10:00", "durationMin": 120, "category": "sight", "name": "大阪城", "address": "大阪市中央区大阪城1-1", "cost": 600, "costWho": "person", "locked": false },
+    { "date": "2026-12-10", "start": "13:00", "durationMin": 150, "category": "sight", "name": "LEGO Land 大阪", "address": "大阪市港区中海老江2-2-2", "cost": 4700, "costWho": "person", "locked": false },
+
+    { "date": "2026-12-11", "start": "11:00", "durationMin": 60, "category": "transit", "mode": "shinkansen", "name": "新幹線 新大阪→東京", "legNote": "新大阪 → 東京", "cost": null, "costWho": "person", "notes": "待確認", "locked": false },
+    { "date": "2026-12-11", "start": "18:40", "durationMin": 220, "category": "flight", "mode": "plane", "name": "NRT✈HK 返程航班（示範）", "address": "Narita Airport Terminal 1", "cost": null, "costWho": "person", "locked": false }
+  ],
+  "packing": [
+    { "cat": "證件文件", "name": "護照", "qty": 3, "note": "有效期 >6 個月" },
+    { "cat": "證件文件", "name": "機票履程單", "qty": 1 },
+    { "cat": "衣物", "name": "發熱衣", "qty": 3, "note": "12 月東京 5–12°C" },
+    { "cat": "電器", "name": "轉接頭", "qty": 2, "note": "日本 A 型 110V" },
+    { "cat": "電器", "name": "行動電源", "qty": 1, "note": "登機随身携带" },
+    { "cat": "洗漱", "name": "牙刷組", "qty": 3 },
+    { "cat": "藥品", "name": "腸胃藥", "qty": 1 },
+    { "cat": "其他", "name": "Suica 交通卡", "qty": 3, "note": "到站再買或辦 Welcome Suica" }
+  ]
+}

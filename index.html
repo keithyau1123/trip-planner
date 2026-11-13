@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>旅行規劃｜日系繪本風</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23F6D27A' stroke='%233E3A39' stroke-width='6'/%3E%3Ctext x='52' y='74' font-size='58' text-anchor='middle'%3E%F0%9F%9A%84%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn+One&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+
+<header class="appheader" id="appheader">
+  <div class="brandwrap">
+    <svg id="brandsvg" class="brandsvg" viewBox="0 0 251 66" aria-label="旅程插圖" role="img"></svg>
+  </div>
+  <div class="headinfo">
+    <h1 id="tripTitle" class="tripname">我的日本之旅</h1>
+    <div class="chips">
+      <span class="chip" id="chipDest">東京</span>
+      <span class="chip" id="chipDays">第 1 天</span>
+      <span class="chip" id="chipPlaces">0 個地點</span>
+      <button class="eyebtn" id="eyeBtn" type="button" aria-pressed="false" title="顯示／隱藏總花費">
+        <svg viewBox="0 0 24 24" class="eyeicon" aria-hidden="true"><path d="M12 5C7 5 3.2 8.6 2 12c1.2 3.4 5 7 10 7s8.8-3.6 10-7c-1.2-3.4-5-7-10-7zm0 11.2A6.2 6.2 0 1 1 12 6.8a6.2 6.2 0 0 1 0 9.4zm0-7.2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+        <span id="eyeTotal" class="eyetotal" hidden>—</span>
+      </button>
+    </div>
+  </div>
+  <nav class="tabbar" aria-label="頁面">
+    <button class="tab active" type="button" data-page="planner">行程規劃</button>
+    <button class="tab" type="button" data-page="expenses">費用總覽</button>
+    <button class="tab" type="button" data-page="packing">攜帶用品</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ===== 規劃頁 ===== -->
+  <section class="page active" id="plannerpage">
+    <div class="workspace">
+      <aside class="mappanel" id="mappanel">
+        <div class="mapheading">
+          <span class="maptitle">地圖</span>
+          <div class="mapactions">
+            <button class="previewroute active" id="previewroute" type="button">路徑預覽</button>
+            <button class="fit" id="mapfit" type="button">整天概覽</button>
+          </div>
+        </div>
+        <div id="mapframe" class="mapframe" aria-label="旅程地圖"></div>
+        <div class="routepanel" id="routepanel">
+          <button class="routepanel-head" id="routetoggle" type="button" aria-expanded="true">
+            <span>交通明細</span><span class="chev" id="routchev">▾</span>
+          </button>
+          <div id="summary" class="summary"></div>
+        </div>
+      </aside>
+
+      <section class="calendarpanel" id="calendarpanel">
+        <div class="paneltoolbar">
+          <div class="cal-head">
+            <h2 class="cal-title">行事曆</h2>
+            <div class="cal-sub" id="calYm"></div>
+          </div>
+          <div class="calendar-viewtoggle" role="group" aria-label="檢視模式">
+            <button type="button" data-view="week" class="active">週</button>
+            <button type="button" data-view="day">單日</button>
+          </div>
+          <div class="toolbarbuttons">
+            <button class="undo-btn" id="undoBtn" type="button" title="復原 (Ctrl+Z)">復原</button>
+            <button class="add-btn" id="addEventBtn" type="button" title="新增地點">＋</button>
+          </div>
+        </div>
+
+        <div class="weekwrap" id="weekview">
+          <div class="calendar" id="calendar"></div>
+        </div>
+
+        <div class="timelinepreview" id="dayview" hidden>
+          <div class="timeline-dates" id="timelineDates">
+            <div class="tl-illustration" id="tlIllustration" aria-hidden="true"></div>
+          </div>
+          <div class="timeline-intro" id="timelineIntro"></div>
+          <div class="timeline-list" id="timelineList">
+            <div class="day-time-scale" id="dayTimeScale"><div class="scale-inner" id="scaleInner"></div></div>
+            <div class="timeline-cards" id="timelineCards"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== 費用頁 ===== -->
+  <section class="page" id="expensespage" hidden>
+    <div class="expenses-grid">
+      <div class="exp-left">
+        <div class="panel totalcard" id="totalCard"></div>
+        <div class="panel exptablewrap" id="expTableWrap"></div>
+      </div>
+      <div class="exp-right">
+        <div class="panel piecard" id="pieCard">
+          <div class="pie-title">支出組成</div>
+          <div class="pie-area"><svg id="pieSvg" viewBox="0 0 220 220" role="img" aria-label="支出組成圓餅圖"></svg></div>
+          <div class="pie-legend" id="pieLegend"></div>
+        </div>
+        <div class="panel budgethint" id="budgetHint"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 用品頁 ===== -->
+  <section class="page" id="packingpage" hidden>
+    <div class="packing-toolbar panel">
+      <input id="packSearch" type="search" placeholder="搜尋用品…" aria-label="搜尋用品">
+      <label class="pack-donefilter"><input type="checkbox" id="packDoneFilter"> 已完成</label>
+      <div class="pack-progress"><div class="pack-bar"><i id="packBar"></i></div><span id="packCount"></span></div>
+      <button class="btn green" id="packAddBtn" type="button">＋ 新增用品</button>
+    </div>
+    <div class="packing-grid" id="packingGrid"></div>
+  </section>
+</main>
+
+<!-- ===== 底部工具籤 ===== -->
+<div class="fabwrap">
+  <nav class="fabmenu" id="fabmenu" aria-label="工具選單">
+    <button type="button" data-act="planner"><i>🗓</i>行程規劃</button>
+    <button type="button" data-act="expenses"><i>💰</i>費用總覽</button>
+    <button type="button" data-act="packing"><i>🎒</i>攜帶用品</button>
+    <hr>
+    <button type="button" data-act="add"><i>＋</i>新增行程</button>
+    <button type="button" data-act="import"><i>📥</i>匯入行程</button>
+    <button type="button" data-act="ics"><i>📲</i>匯出 ICS 行事曆</button>
+    <button type="button" data-act="undo"><i>↩</i>復原</button>
+    <button type="button" data-act="settings"><i>⚙</i>旅程設定</button>
+  </nav>
+  <button class="fab" id="fab" type="button" aria-expanded="false" aria-controls="fabmenu" aria-label="開啟工具選單">
+    <svg viewBox="0 0 24 24" class="hamburger" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+  </button>
+</div>
+
+<!-- ===== 彈出表單 ===== -->
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" id="eventModal" hidden role="dialog" aria-modal="true" aria-label="行程編輯">
+    <h3 id="eventModalTitle">新增行程</h3>
+    <form id="eventForm" class="form" autocomplete="off">
+      <label>名稱<input name="name" required placeholder="例：淺草寺參拜"></label>
+      <div class="row2">
+        <label>當地日期<input name="date" type="date" required></label>
+        <label>開始時間<input name="start" type="time" required></label>
+      </div>
+      <div class="row2">
+        <label>時長（分鐘）<input name="durationMin" type="number" min="5" step="5" required></label>
+        <label>類別
+          <select name="category">
+            <option value="sight">景點</option>
+            <option value="food">餐飲</option>
+            <option value="stay">住宿</option>
+            <option value="transit">交通</option>
+            <option value="flight">航班</option>
+          </select>
+        </label>
+      </div>
+      <div class="row2" id="modeRow" hidden>
+        <label>交通方式
+          <select name="mode">
+            <option value="train">火车</option>
+            <option value="shinkansen">新幹線</option>
+            <option value="metro">地铁</option>
+            <option value="bus">公車</option>
+            <option value="walk">步行</option>
+            <option value="taxi">計程車</option>
+            <option value="car">自駕</option>
+            <option value="plane">飛機</option>
+          </select>
+        </label>
+        <label>起點／終點註記<input name="legNote" placeholder="例：東京 → 京都"></label>
+      </div>
+      <label>地址或地點（地圖搜尋用）<input name="address" placeholder="例：東京都台東区浅草2-3-1"></label>
+      <div class="row2">
+        <label>金額<input name="cost" type="number" min="0" step="1" placeholder="留空＝待估"></label>
+        <label>計費方式
+          <select name="costWho">
+            <option value="person">每人</option>
+            <option value="car">每車</option>
+            <option value="group">全團</option>
+          </select>
+        </label>
+      </div>
+      <label>備註<textarea name="notes" rows="2"></textarea></label>
+      <label class="lockline"><input type="checkbox" name="locked"> 已預約，鎖定時段（不可被排程移動）</label>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="eventDeleteBtn" hidden>刪除</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="eventCancelBtn">取消</button>
+        <button type="submit" class="btn green">儲存</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="settingsModal" hidden role="dialog" aria-modal="true" aria-label="旅程設定">
+    <h3>旅程設定</h3>
+    <form id="settingsForm" class="form" autocomplete="off">
+      <div class="row2">
+        <label>旅程名稱<input name="name" required></label>
+        <label>目的地<input name="destination" placeholder="例：東京"></label>
+      </div>
+      <div class="row2">
+        <label>開始日期<input name="startDate" type="date"></label>
+        <label>結束日期<input name="endDate" type="date"></label>
+      </div>
+      <div class="row2">
+        <label>當地時區
+          <select name="timezone">
+            <option value="Asia/Tokyo">日本 Asia/Tokyo（JST）</option>
+            <option value="Asia/Taipei">台北 Asia/Taipei</option>
+            <option value="Asia/Hong_Kong">香港 Asia/Hong_Kong</option>
+            <option value="Asia/Seoul">首爾 Asia/Seoul</option>
+            <option value="Asia/Bangkok">曼谷 Asia/Bangkok</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </label>
+        <label>成人人數<input name="adults" type="number" min="1" step="1"></label>
+      </div>
+      <div class="row2">
+        <label>兒童人數<input name="children" type="number" min="0" step="1"></label>
+        <label>兒童年齡（逗號分隔）<input name="childAges" placeholder="例：5,9"></label>
+      </div>
+      <div class="row2">
+        <label>當地幣別
+          <select name="currency">
+            <option value="JPY">JPY 日圓</option><option value="TWD">TWD 台幣</option>
+            <option value="HKD">HKD 港幣</option><option value="USD">USD 美元</option>
+            <option value="THB">THB 泰銖</option><option value="KRW">KRW 韓元</option>
+          </select>
+        </label>
+        <label>結算幣別
+          <select name="settleCurrency">
+            <option value="HKD">HKD 港幣</option><option value="TWD">TWD 台幣</option>
+            <option value="JPY">JPY 日圓</option><option value="USD">USD 美元</option>
+          </select>
+        </label>
+      </div>
+      <label>匯率：1 單位當地幣 = ? <span id="rateToLabel">結算幣</span>
+        <input name="rate" type="number" min="0" step="0.0001" placeholder="例：JPY→HKD 約 0.055">
+      </label>
+      <label>每日最早出發<input name="dayStart" type="time" value="08:30"></label>
+      <label>每日最晚返回<input name="dayEnd" type="time" value="21:30"></label>
+      <label>Google Maps API Key（選填；有 key 時地圖改用 Google 自訂樣式＋ Directions）
+        <input name="mapsKey" type="password" placeholder="AIza…留空則用開源地圖">
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="settingsCancelBtn">取消</button>
+        <button type="submit" class="btn green">儲存設定</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="importModal" hidden role="dialog" aria-modal="true" aria-label="匯入行程">
+    <h3>匯入行程</h3>
+    <p class="hint">兩種方式：貼上你現有的行程文字（每天一行「09:00 地點名 — 備註」也能讀），或貼上 / 選擇 JSON 檔。匯入會<strong>取代</strong>現有行事曆內容，可復原。</p>
+    <textarea id="importText" rows="10" placeholder="貼上行程文字或 JSON…"></textarea>
+    <input type="file" id="importFile" accept=".json,application/json">
+    <div class="modal-actions">
+      <button type="button" class="btn" id="importCancelBtn">取消</button>
+      <button type="button" class="btn green" id="importDoBtn">解析並匯入</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/js/svg.js"></script>
+<script src="assets/js/map.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
