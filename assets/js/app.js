@@ -9,6 +9,10 @@ const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(
 
 /* ---------- 狀態 ---------- */
 const STORE_KEY = 'jp-trip-state-v1';
+/* Apps Script 雲端模式：有 google.script.run 即代表呢個頁面行緊喺 Apps Script Web App
+   （Google 登入＋全域名門禁），行程每個使用者自己一份（UserProperties 雲端）。
+   GitHub Pages 版呢度係 false，繼續用瀏覽器本機 localStorage。 */
+const CLOUD = !!(window.google && window.google.script && window.google.script.run);
 const DEFAULT_TRIP = {
   name: '我的日本之旅', destination: '', timezone: 'Asia/Tokyo',
   startDate: '', endDate: '', currency: 'JPY', settleCurrency: 'HKD', rate: 0.055,
@@ -19,14 +23,41 @@ let state = {
   trip: { ...DEFAULT_TRIP }, settings: { ...DEFAULT_SETTINGS },
   events: [], packing: [], est: {}, sel: { dayIndex: 0 },
 };
-try {
-  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-  if (saved) {
-    state = { ...state, ...saved, trip: { ...DEFAULT_TRIP, ...(saved.trip || {}) }, settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) } };
-  }
-} catch (e) { /* 損毀則重來 */ }
-let saveT = null;
-function save() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }, 120); }
+function applyState(saved) {
+  if (!saved) return;
+  state = { ...state, ...saved, trip: { ...DEFAULT_TRIP, ...(saved.trip || {}) }, settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) } };
+}
+try { applyState(JSON.parse(lsGet(STORE_KEY) || 'null')); } catch (e) { /* 損毀則重來 */ }
+let saveT = null, cloudT = null, cloudBusy = false, cloudPend = false, lastSync = 0;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => { lsSet(STORE_KEY, JSON.stringify(state)); }, 120); // 本機鏡像（雲端模式都做備份）
+  if (CLOUD) { setChip('⏳ 未同步…'); clearTimeout(cloudT); cloudT = setTimeout(pushCloud, 800); }
+}
+function setChip(txt) {
+  const c = $('#cloudchip'); if (!c) return;
+  c.hidden = !txt; c.textContent = txt || '';
+  c.title = lastSync ? '最後同步：' + new Date(lastSync).toLocaleString() : '雲端同步狀態';
+}
+function pushCloud() {
+  if (cloudBusy) { cloudPend = true; return; }
+  cloudBusy = true;
+  const payload = JSON.stringify({ trip: state.trip, events: state.events, packing: state.packing, settings: state.settings, est: state.est, sel: state.sel });
+  google.script.run
+    .withSuccessHandler(info => {
+      cloudBusy = false; lastSync = (info && info.savedAt) || Date.now();
+      const who = (info && info.email) || (typeof USER_EMAIL !== 'undefined' ? USER_EMAIL : '');
+      setChip(who ? '☁ ' + who : '☁ 已同步');
+      if (cloudPend) { cloudPend = false; pushCloud(); }
+    })
+    .withFailureHandler(err => {
+      cloudBusy = false;
+      setChip('⚠️ 同步失敗 · 2 秒後自動重試' + ((err && err.message) ? '（' + err.message + '）' : ''));
+      if (cloudPend) cloudPend = false;
+      clearTimeout(cloudT); cloudT = setTimeout(pushCloud, 2000);
+    })
+    .saveAll(payload);
+}
 
 /* ---------- 復原 ---------- */
 const history = [];
@@ -907,6 +938,12 @@ setInterval(() => {
 }, 15000);
 
 /* ---------- 啟動 ---------- */
+function maybeWelcome() {
+  if (!state.events.length && !lsGet('jp-trip-welcomed')) {
+    lsSet('jp-trip-welcomed', '1');
+    toast('旅程一開始是空白：按右上方＋新增，或底部工具籤⚙先設定日期與匯入行程');
+  }
+}
 (function boot() {
   $('#brandsvg').innerHTML = BRAND_SVG;
   MapX.init($('#mapframe'));
@@ -914,8 +951,28 @@ setInterval(() => {
   if (state.settings.mapMode === 'route') $('#previewroute').classList.add('active'); else $('#mapfit').classList.add('active');
   renderAll();
   MapX.setKey(state.settings.mapsKey || '').then(() => renderMapForSel());
-  if (!state.events.length && !localStorage.getItem('jp-trip-welcomed')) {
-    localStorage.setItem('jp-trip-welcomed', '1');
-    toast('旅程一開始是空白：按右上方＋新增，或底部工具籤⚙先設定日期與匯入行程');
+  if (CLOUD) {
+    // 雲端模式：本機 localStorage 只係鏡像；以雲端嗰份為準（每個 Google 帳號自己一份）
+    setChip('⏳ 載入雲端行程…');
+    google.script.run
+      .withSuccessHandler(info => {
+        if (info && info.json) {
+          try { applyState(JSON.parse(info.json)); } catch (e) { /* 雲端資料壞咗就用本機鏡像 */ }
+          lastSync = info.savedAt || 0;
+          $('#previewroute').classList.toggle('active', state.settings.mapMode === 'route');
+          $('#mapfit').classList.toggle('active', state.settings.mapMode !== 'route');
+          renderAll();
+          MapX.setKey(state.settings.mapsKey || '').then(() => renderMapForSel());
+        } else if (lsGet(STORE_KEY)) {
+          pushCloud(); // 第一次行雲端：自動將本機舊行程搬上去
+        }
+        const who = (info && info.email) || (typeof USER_EMAIL !== 'undefined' ? USER_EMAIL : '');
+        setChip(who ? '☁ ' + who : '☁ 已同步');
+        maybeWelcome();
+      })
+      .withFailureHandler(() => setChip('⚠️ 雲端連線失敗（編輯照樣得，改動會重試同步）'))
+      .loadAll();
+  } else {
+    maybeWelcome();
   }
 })();

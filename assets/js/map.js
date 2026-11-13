@@ -11,7 +11,11 @@ const GEO_CACHE_KEY = 'jp-trip-geo-cache-v1';
    呢個係公開 client 端 key；萬一被人盗用超額，去 https://dashboard.basemaps.carto.com/keys
    重發一張，再改下面呢一行推上去就得。 */
 const CARTO_BASEMAP_KEY = 'cb1_585g_1_311000e1d39709b9504d6e47';
-const geoCache = JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}');
+/* localStorage 安全包裝：Apps Script HtmlService 嘅 sandbox iframe 有可能禁 localStorage，
+   禁咗就淨係用記憶體快取（每次開頁重新 geocode），唔好撻死成個 app。 */
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 沙箱唔畀用：忽略 */ } }
+const geoCache = JSON.parse(lsGet(GEO_CACHE_KEY) || '{}');
 
 const MapX = (() => {
   let el = null, leaf = null, gmap = null, mode = 'leaflet', key = '';
@@ -39,7 +43,7 @@ const MapX = (() => {
     try {
       const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), { headers: { 'Accept-Language': 'zh' } });
       const j = await r.json();
-      if (j[0]) { ll = [ +j[0].lat, +j[0].lon ]; geoCache[q] = ll; localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geoCache)); }
+      if (j[0]) { ll = [ +j[0].lat, +j[0].lon ]; geoCache[q] = ll; lsSet(GEO_CACHE_KEY, JSON.stringify(geoCache)); }
     } catch (e) { /* 離線或被擋：略過 */ }
     return ll;
   }

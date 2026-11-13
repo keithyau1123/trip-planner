@@ -49,6 +49,7 @@ h1,h2,h3{margin:0}
   border-radius:999px;padding:3px 10px;cursor:pointer}
 .eyebtn .eyeicon{width:18px;height:18px;fill:var(--ink)}
 .eyetotal{font-size:13px;font-weight:700}
+.cloudchip{font-size:12px;padding:3px 10px;border:2px dashed var(--ink);border-radius:999px;background:var(--paper);color:var(--muted, #6d6862);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabbar{display:flex;gap:8px}
 .tab{border:var(--bw) solid var(--ink);background:#fff;border-radius:14px;padding:7px 14px;
   cursor:pointer;font-size:14px;box-shadow:var(--shadow)}

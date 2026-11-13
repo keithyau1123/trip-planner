@@ -45,9 +45,16 @@ npx serve .
 2. Repo → Settings → Pages → Source: `Deploy from a branch` → 分支 `main` / `(root)`。
 3. 網址會變成 `https://<用戶名>.github.io/<repo>/`。
 
+## 另一種部署：Google Workspace 登入版（Apps Script，每人雲端一份）
+
+想只有指定 domain 嘅 Google 帳號先用到、而且行程跟住個帳號行（換機都見到）：
+睇 **[`README-GAS.md`](README-GAS.md)**。介面同一套，只是由 `build/gas.ps1` 生成 Apps Script 版再部署；
+GitHub Pages 版照用，兩者資料互相獨立。
+
 ## 隱私備註
 
-- 全部資料存瀏覽器 `localStorage`（本機草稿），不經伺服器。
+- GitHub Pages 版：全部資料存瀏覽器 `localStorage`（本機草稿），不經伺服器。
+- Apps Script 版：資料存 Google Workspace 帳號嘅雲端屬性（只係該帳號自己見到）；部署要「執行身分＝存取者＋僅 domain 存取」，詳見 README-GAS.md。
 - Google Maps API key 只存本機，寫入前請自備 key（ Maps 計費綁你自己的帳務）。
 - 匯出的 JSON 不包含 API key。
 
