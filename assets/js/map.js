@@ -5,6 +5,12 @@
      用 DirectionsService 取路段線形與預估時間。
 */
 const GEO_CACHE_KEY = 'jp-trip-geo-cache-v1';
+/* CARTO Basemaps 免費 key（非商業 5,000,000 瓦片/月）：2025 年底起，舊嘅無 key
+   底圖 URL 會統一返回一張印住「API KEY REQUIRED」嘅佔用瓦片（任何 zoom 都係
+   同一張 2049 字節 PNG），所以而家必須行帶 key 嘅 /rastertiles/ endpoint。
+   呢個係公開 client 端 key；萬一被人盗用超額，去 https://dashboard.basemaps.carto.com/keys
+   重發一張，再改下面呢一行推上去就得。 */
+const CARTO_BASEMAP_KEY = 'cb1_585g_1_311000e1d39709b9504d6e47';
 const geoCache = JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}');
 
 const MapX = (() => {
@@ -75,8 +81,8 @@ const MapX = (() => {
   async function drawLeaflet(evts, showRoute) {
     if (!leaf) {
       leaf = L.map(el, { scrollWheelZoom: true, zoomControl: true });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        { maxZoom: 19, attribution: '© OpenStreetMap © CARTO' }).addTo(leaf);
+      L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_BASEMAP_KEY}`,
+        { maxZoom: 18, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © CARTO' }).addTo(leaf);
       layer = L.layerGroup().addTo(leaf);
     }
     layer.clearLayers();
@@ -114,8 +120,8 @@ const MapX = (() => {
     let a = el.parentElement.querySelector('.maplink');
     if (!a) { a = document.createElement('div'); a.className = 'maplink'; el.parentElement.insertBefore(a, el.nextSibling); }
     a.innerHTML = mode === 'leaflet'
-      ? `開源地圖（無 API key）· <a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=&destination=">Google 外部地圖</a>`
-      : `Google Maps（自訂樣式）`;
+      ? `開源 Leaflet 地圖 · CARTO 灰階底圖（帶免費底圖 key，與 Google Maps key 無關）`
+      : `Google Maps 模式 · 已載入自訂樣式`;
   }
 
   /* ---------- Google 模式 ---------- */

@@ -11,6 +11,11 @@
 3. **Google Maps API key 未提供**：依使用者選擇，預設走開源地圖 fallback
    （Leaflet + CARTO 灰階圖磚 + Nominatim 地理編碼 + OSRM 步行路徑）。
    key 之後可填入⚙設定（只存本機）。注意：
+   - **CARTO 底圖由 2025 年底起必須帶免費 Basemaps API key**：舊嘅無 key URL 會統一
+     返回一張印住「API KEY REQUIRED」嘅佔用瓦片。已使用使用者申請嘅免費 key
+     （非商業 5,000,000 瓦片/月），示範站屬非個人用途、量極小，唔使擔心超限。
+     key 屬公開 client 端（寫喺 map.js `CARTO_BASEMAP_KEY`）；若被盜用或超額，
+     去 https://dashboard.basemaps.carto.com/keys 重發一張，改 map.js 該行再 push。
    - Nominatim 公開服務有用量限制（已做每筆 ≥1.1 秒節流＋本機快取）；大量行程可能變慢或被限流。
    - OSRM 公開服務偶爾不穩，失败時退回直線路段（仍照交通方式著色）。
    - 有 key 時改用 Google 自訂樣式＋Directions；Directions 回傳的時間/距離/票價
