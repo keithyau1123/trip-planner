@@ -4,26 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
-var __PROBE = { v: 'v18', head: 1 };
+var __PROBE = { v: 'v19', head: 1 };
 window.__PROBE = __PROBE;
 function __showErr(txt) {
-  var d = document.getElementById('booterr');
-  if (!d) {
-    d = document.createElement('div');
-    d.id = 'booterr';
-    d.setAttribute('style', 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b23b3b;color:#fff;font:13px/1.7 sans-serif;padding:10px 16px;white-space:pre-wrap');
-    (document.body || document.documentElement).appendChild(d);
+  var box = document.getElementById('booterrs');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'booterrs';
+    box.setAttribute('style', 'position:fixed;top:8px;left:8px;right:8px;z-index:99999;display:flex;flex-direction:column;gap:6px');
+    (document.body || document.documentElement).appendChild(box);
   }
+  var d = document.createElement('div');
+  d.setAttribute('style', 'background:#b23b3b;color:#fff;font:13px/1.7 sans-serif;padding:10px 16px;white-space:pre-wrap;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.3)');
   d.textContent = txt;
   d.onclick = function () { d.remove(); };
-  d.title = '撳呢個紅橫欄可以收埋佢';
+  d.title = '撳呢個紅欄可以收埋佢';
+  box.appendChild(d);
+  while (box.children.length > 4) box.removeChild(box.firstChild);
 }
 window.__appErr = function (where, e) {
-  __showErr('⚠️ ' + where + '錯誤：' + ((e && (e.message || e)) || 'unknown') + (e && e.stack ? '\n' + String(e.stack).split('\n').slice(1, 3).join('\n') : ''));
+  __showErr('⚠️ ' + where + '：' + ((e && (e.message || e)) || 'unknown') + (e && e.stack ? '\n' + String(e.stack).split('\n').slice(1, 3).join('\n') : ''));
 };
 window.addEventListener('error', function (ev) {
   if (ev && ev.target && ev.target.tagName === 'SCRIPT' && ev.target.src) __showErr('⚠️ 載入唔到 script 檔：' + String(ev.target.src).split('/').pop());
-  else if (ev && ev.message) __showErr('⚠️ 頁面錯誤：' + ev.message + '（檔 ' + String(ev.filename || '?').split('/').pop() + ' 行 ' + ev.lineno + '）');
+  else if (ev && ev.message) __showErr('⚠️ 頁面錯誤 line ' + ev.lineno + ':' + (ev.colno || 0) + '：' + ev.message);
 }, true);
 </script>
 <title>旅行規劃｜日系繪本風</title>
@@ -49,7 +53,7 @@ window.addEventListener('error', function (ev) {
         <span id="eyeTotal" class="eyetotal" hidden>—</span>
       </button>
       <span id="cloudchip" class="cloudchip" hidden></span>
-      <span class="chip" id="verchip" title="版本">v18</span>
+      <span class="chip" id="verchip" title="版本">v19</span>
     </div>
   </div>
   <nav class="tabbar" aria-label="頁面">
@@ -310,9 +314,9 @@ window.addEventListener('error', function (ev) {
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/js/svg.js?v=18"></script>
-<script src="assets/js/map.js?v=18"></script>
-<script src="assets/js/app.js?v=18"></script>
+<script src="assets/js/svg.js?v=19"></script>
+<script src="assets/js/map.js?v=19"></script>
+<script src="assets/js/app.js?v=19"></script>
 <script>
 setTimeout(function () {
   var p = window.__PROBE || {};
@@ -326,7 +330,7 @@ setTimeout(function () {
   if (bad.length || p.cloud && !p.cloudDone && !p.cloudFail) {
     __showErr('⚠️ 啟動診斷：' + (bad.join('、') || '主程式OK，雲端資料未返') + '；probe=' + JSON.stringify(p) + '；script tag 數=' + document.scripts.length);
   }
-}, 4000);
+}, 6000);
 </script>
 </body>
 </html>

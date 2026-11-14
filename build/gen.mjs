@@ -28,9 +28,19 @@ idx = idx
 
 W('apps-script/index.html', idx);
 W('apps-script/css.html', '<style>\n' + css + '</style>');
-W('apps-script/js_svg.html', '<script>\n' + jsSvg + '</script>');
-W('apps-script/js_map.html', '<script>\n' + jsMap + '</script>');
-W('apps-script/js_app.html', '<script>\n' + jsApp + '</script>');
+// map/app 檔以 base64 編碼嵌入（GAS HtmlService 會 re-serialize inline script 並改壞內容；base64 內容 parser 改唔到）
+const wrapEval = (name, body) => {
+  const b64 = Buffer.from(body, 'utf8').toString('base64');
+  if (Buffer.from(b64, 'base64').toString('utf8') !== body) { console.log('ABORT: base64 round-trip broke js_' + name); process.exit(1); }
+  return '<script>\ntry {\n  var src = new TextDecoder().decode(Uint8Array.from(atob("' + b64 + '"), function (c) { return c.charCodeAt(0); }));\n  (0, eval)(src + "\\n//# sourceURL=js_' + name + '.gas");\n} catch (e) { if (window.__appErr) window.__appErr("js_' + name + ' 解碼或執行失敗", e); else throw e; }\n<\/script>';
+};
+const outSvg = '<script>\n' + jsSvg + '</script>';
+const outMap = wrapEval('map', jsMap);
+const outApp = wrapEval('app', jsApp);
+W('apps-script/js_svg.html', outSvg);
+W('apps-script/js_map.html', outMap);
+W('apps-script/js_app.html', outApp);
+if (/[\uFFFD]/.test(css + jsSvg + jsMap + jsApp)) console.log('WARN U+FFFD in SOURCE files');
 
 // ---- verification ----
 const files = ['index.html', 'css.html', 'js_svg.html', 'js_map.html', 'js_app.html'];
@@ -56,7 +66,7 @@ for (const [f, body] of [['js_svg.html', jsSvg], ['js_map.html', jsMap], ['js_ap
   try { new vm.Script(body); console.log('vm-ok ' + f); } catch (e) { console.log('VM-FAIL ' + f + ': ' + e.message); }
 }
 // assembled doc line count (sim)
-const inc = { css: '<style>\n' + css + '</style>', js_svg: '<script>\n' + jsSvg + '</script>', js_map: '<script>\n' + jsMap + '</script>', js_app: '<script>\n' + jsApp + '</script>' };
+const inc = { css: '<style>\n' + css + '</style>', js_svg: outSvg, js_map: outMap, js_app: outApp };
 let doc = fs.readFileSync('apps-script/index.html', 'utf8').replace(/<\?([\s\S]*?)\?>/g, (m, inner) => {
   inner = inner.replace(/^[!=]{1,2}/, '').trim();
   const mi = inner.match(/^include\('([^']+)'\)$/);
@@ -65,4 +75,6 @@ let doc = fs.readFileSync('apps-script/index.html', 'utf8').replace(/<\?([\s\S]*
   return '/*scriptlet*/';
 });
 console.log('assembled doc lines:', doc.split('\n').length);
+fs.mkdirSync('build/sim', { recursive: true });
+W('build/sim/assembled-test.html', doc); // local browser smoke test of the assembled GAS doc (gitignored)
 console.log('gen done');

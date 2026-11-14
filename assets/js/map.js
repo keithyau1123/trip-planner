@@ -216,6 +216,7 @@ const MapX = (() => {
 
   return { init, showDay, setKey, transitSearch, get mode() { return (window.google && window.google.maps && window.google.maps.DirectionsService) ? 'google' : 'none'; }, get _map() { return gmap; } };
 })();
+window.MapX = MapX; // GAS eval 隔離スコープへ top-level const export（global lexical record entry 無entries）
 
 function navUrl(e) {
   const q = encodeURIComponent(e.address || e.name);

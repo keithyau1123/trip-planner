@@ -14,3 +14,5 @@ build/gmaps*.mjs
 build/disc*.mjs
 build/mitmcheck.mjs
 test/
+
+build/sim/
