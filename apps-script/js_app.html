@@ -1000,13 +1000,13 @@ function runTransit() {
   $('#trResults').innerHTML = '<p class="hint">⏳ 搵緊班次，要 1–3 秒…</p>';
   MapX.transitSearch(transitQuery(eA), transitQuery(eB), departMs).then(r => {
     trBusy = false; btn.disabled = false; btn.textContent = '搵班次';
-    $('#trResults').innerHTML = r.error ? transitErrHtml(r.error) : transitRoutesHtml(r.routes, departMs);
+    $('#trResults').innerHTML = r.error ? transitErrHtml(r.error) : (r.noDepartTime ? '<p class="hint">ℹ️ Google 免費層（project 未開 billing）淨係查到「<b>而家出發</b>」嘅建議路段——你揀咗嘅出發日期時間暫時唔生效，下面時間係 Google 建議嘅實際班次時間。開通 billing 後先至支援「揀未來某個時間、miss 咗頭班接住搭邊班」。</p>' : '') + transitRoutesHtml(r.routes, departMs);
   });
 }
 function transitErrHtml(err) {
   const hints = {
     NO_KEY: '未輸入 Google Maps key（⚙ 設定填 key 先至查到班次）',
-    REQUEST_DENIED: 'key 未開通 Directions API，或者 key 有來源限制',
+    REQUEST_DENIED: 'Google 2025 收費制：查路線屬付費項目，project 需要開通 billing（Cloud Console → Billing → 開通帳戶；用量細喺免費額度內唔會扣錢）。另確認 Directions API 已開通、key 無來源限制',
     INVALID_REQUEST: 'Google 搵唔到其中一個地點：將該地點嘅地址改做清楚啲嘅站名／POI 名',
     ZERO_RESULTS: '兩個地點之間查唔到公共交通：試下改用對近嘅站名做起點／終點',
   };
@@ -1038,7 +1038,7 @@ function transitRoutesHtml(routes, departMs) {
     const arrT = (last && last.arr) || departMs + totDur * 1000;
     html += `<div class="tr-card"><h4>方案 ${i + 1}｜${tzHM(depT)} 上車 → ${tzHM(arrT)} 到（全程 ${Math.round(totDur / 60)} 分鐘）${r.summary ? ` · ${transitEsc(r.summary)}` : ''}</h4>${legHtml}</div>`;
   });
-  if (routes.length > 1) html += '<p class="hint">幾個方案同時顯示＝假設頭班 miss 咗，接住仲可以搭邊班；想再等遲啲就加大出發時間再搵。</p>';
+  if (routes.length > 1) html += '<p class="hint">幾個方案同時顯示＝去同一個終點嘅唔同路線選擇；免費層下你揀嘅出發時間唔影響結果（見上面提示），時間表以 Google 而家建議為準。</p>';
   return html;
 }
 $('#transitBtn').addEventListener('click', openTransit);

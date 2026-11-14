@@ -269,7 +269,7 @@
 
   <div class="modal" id="transitModal" hidden role="dialog" aria-modal="true" aria-label="點樣去">
     <h3>點樣去？（A → B 公共交通）</h3>
-    <p class="hint">由行程揀起點／終點同出發時間，Google 會畀幾個班次方案——一次過見到「呢班 miss 咗接住可以搭邊班」。需要用 ⚙ 設定輸入 Google Maps key（專案要開通 <strong>Directions API</strong>）。</p>
+    <p class="hint">由行程揀起點／終點同出發時間，Google 會畀路線方案。需要 ⚙ 設定輸入 Google Maps key，而 Cloud project 亦要開通 <strong>Directions API + billing</strong>（Google 2025 收費制：查路線屬付費項目，用量細喺免費額度內唔會扣錢）。未開 billing 時會查到但會提示你。</p>
     <div class="tr-fields">
       <label>起點 <select id="trFrom"></select></label>
       <label>終點 <select id="trTo"></select></label>
