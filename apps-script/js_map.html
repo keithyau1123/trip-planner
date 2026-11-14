@@ -8,6 +8,7 @@
      自動可用，唔使改 code。
 */
 const GEO_CACHE_KEY = 'jp-trip-geo-cache-v1';
+if (window.__PROBE) window.__PROBE.map = 1;
 /* localStorage 安全包裝：Apps Script HtmlService 嘅 sandbox iframe 有可能禁 localStorage，
    禁咗就淨係用記憶體快取（每次開頁重新 geocode），唔好撻死成個 app。 */
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }

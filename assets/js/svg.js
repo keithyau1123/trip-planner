@@ -1,4 +1,5 @@
 /* ===== 插圖庫：品牌 251×66 ＋ 日期插圖 40×30 ＋ 交通圖示 ===== */
+if (window.__PROBE) window.__PROBE.svg = 1;
 const INK = '#3E3A39';
 const SW = 1.7; // 日期插圖線寬
 

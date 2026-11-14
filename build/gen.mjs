@@ -15,16 +15,16 @@ let idx = R(web, 'utf8');
 const must = (cond, what) => { if (!cond) { console.log('ABORT: pattern not found: ' + what); process.exit(1); } };
 
 if (idx.includes('leaflet')) { console.log('ABORT: leaflet still referenced in index.html'); process.exit(1); }
-must(idx.includes('<link rel="stylesheet" href="assets/css/main.css">'), 'css link');
-must(idx.includes('<script src="assets/js/svg.js"></script>'), 'svg.js tag');
-must(idx.includes('<script src="assets/js/map.js"></script>'), 'map.js tag');
-must(idx.includes('<script src="assets/js/app.js"></script>'), 'app.js tag');
+must(/href="assets\/css\/main\.css(\?v=\d+)?"/.test(idx), 'css link');
+must(/src="assets\/js\/svg\.js(\?v=\d+)?"/.test(idx), 'svg.js tag');
+must(/src="assets\/js\/map\.js(\?v=\d+)?"/.test(idx), 'map.js tag');
+must(/src="assets\/js\/app\.js(\?v=\d+)?"/.test(idx), 'app.js tag');
 
 idx = idx
-  .replace('<link rel="stylesheet" href="assets/css/main.css">', "<?!= include('css') ?>")
-  .replace('<script src="assets/js/svg.js"></script>', "<?!= include('js_svg') ?>")
-  .replace('<script src="assets/js/map.js"></script>', "<?!= include('js_map') ?>")
-  .replace('<script src="assets/js/app.js"></script>', "<script>var USER_EMAIL = <?!= JSON.stringify(_email ? _email : '') ?>;</script>\n<?!= include('js_app') ?>");
+  .replace(/<link rel="stylesheet" href="assets\/css\/main\.css(\?v=\d+)?">/, "<?!= include('css') ?>")
+  .replace(/<script src="assets\/js\/svg\.js(\?v=\d+)?"><\/script>/, "<?!= include('js_svg') ?>")
+  .replace(/<script src="assets\/js\/map\.js(\?v=\d+)?"><\/script>/, "<?!= include('js_map') ?>")
+  .replace(/<script src="assets\/js\/app\.js(\?v=\d+)?"><\/script>/, "<script>var USER_EMAIL = <?!= JSON.stringify(_email ? _email : '') ?>;<\/script>\n<?!= include('js_app') ?>");
 
 W('apps-script/index.html', idx);
 W('apps-script/css.html', '<style>\n' + css + '</style>');

@@ -1,5 +1,6 @@
 <script>
 /* ================= 旅行規劃主程式 ================= */
+if (window.__PROBE) window.__PROBE.app = 1;
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -511,6 +512,7 @@ function drawSummary() {
   $('#routetoggle').setAttribute('aria-expanded', String(!!state.settings.routeOpen));
 }
 /* Google Directions 回傳的預估（不覆寫手動值） */
+if (window.__PROBE) window.__PROBE.appx = 1;
 window.AppX = {
   applyRouteResult(nodeEvId, sec, distText, fare) {
     // 找節點前面的交通段
@@ -1053,6 +1055,8 @@ function maybeWelcome() {
   }
 }
 (function boot() {
+  if (window.__PROBE) window.__PROBE.boot = 1;
+  try {
   $('#brandsvg').innerHTML = BRAND_SVG;
   MapX.init($('#mapframe'));
   $('#undoBtn').disabled = history.length === 0;
@@ -1062,8 +1066,10 @@ function maybeWelcome() {
   if (CLOUD) {
     // 雲端模式：本機 localStorage 只係鏡像；以雲端嗰份為準（每個 Google 帳號自己一份）
     setChip('⏳ 載入雲端行程…');
+    if (window.__PROBE) window.__PROBE.cloud = 1;
     google.script.run
       .withSuccessHandler(info => {
+        if (window.__PROBE) window.__PROBE.cloudDone = 1;
         if (info && info.json) {
           try { applyState(JSON.parse(info.json)); } catch (e) { /* 雲端資料壞咗就用本機鏡像 */ }
           lastSync = info.savedAt || 0;
@@ -1078,10 +1084,15 @@ function maybeWelcome() {
         setChip(who ? '☁ ' + who : '☁ 已同步');
         maybeWelcome();
       })
-      .withFailureHandler(() => setChip('⚠️ 雲端連線失敗（編輯照樣得，改動會重試同步）'))
+      .withFailureHandler(err => { if (window.__PROBE) window.__PROBE.cloudFail = String(err && err.message || err).slice(0, 120); setChip('⚠️ 雲端連線失敗（編輯照樣得，改動會重試同步）') })
       .loadAll();
   } else {
+    if (window.__PROBE) window.__PROBE.booted = 1;
     maybeWelcome();
+  }
+  if (window.__PROBE) window.__PROBE.booted = 1;
+  } catch (e) {
+    if (window.__appErr) window.__appErr('啟動 boot', e);
   }
 })();
 </script>
