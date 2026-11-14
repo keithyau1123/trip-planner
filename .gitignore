@@ -2,3 +2,15 @@
 Thumbs.db
 node_modules/
 *.log
+
+apps-script/.clasp.json
+.clasp.json
+
+gas-exec.html
+gas-panel-*.html
+build/scratch/
+build/gas*.mjs
+build/gmaps*.mjs
+build/disc*.mjs
+build/mitmcheck.mjs
+test/
