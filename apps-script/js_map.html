@@ -1,17 +1,11 @@
 <script>
-/* ===== 地圖模組：開源 Leaflet fallback ＋（選填）Google Maps key 模式 =====
-   - 沒有 Google Maps API key：Leaflet + CARTO 灰階底圖，依交通方式著色線形，
-     地點點兩下直接開啟 Google Maps 導航。
-   - 有 key：改載 Google Maps JS SDK，灰階自訂樣式＋淡藍水域，
-     用 DirectionsService 取路段線形與預估時間。
+/* ===== 地圖模組：只用 Google Maps =====
+   - 地圖一律用 Google Maps JS SDK（要喺 ⚙ 旅程設定輸入 Google Maps API key，
+     專案需開通 Maps JavaScript API + Directions API；Geocoding 用 SDK 自帶，唔另使 key）。
+   - 未填 key：地圖區顯示提示，其他功能（行程、費用、打包、🚌 按鈕提示）照常。
+   - geocode 結果有本機快取（GEO_CACHE_KEY），同地址唔-repeat 食 quota。
 */
 const GEO_CACHE_KEY = 'jp-trip-geo-cache-v1';
-/* CARTO Basemaps 免費 key（非商業 5,000,000 瓦片/月）：2025 年底起，舊嘅無 key
-   底圖 URL 會統一返回一張印住「API KEY REQUIRED」嘅佔用瓦片（任何 zoom 都係
-   同一張 2049 字節 PNG），所以而家必須行帶 key 嘅 /rastertiles/ endpoint。
-   呢個係公開 client 端 key；萬一被人盗用超額，去 https://dashboard.basemaps.carto.com/keys
-   重發一張，再改下面呢一行推上去就得。 */
-const CARTO_BASEMAP_KEY = 'cb1_585g_1_311000e1d39709b9504d6e47';
 /* localStorage 安全包裝：Apps Script HtmlService 嘅 sandbox iframe 有可能禁 localStorage，
    禁咗就淨係用記憶體快取（每次開頁重新 geocode），唔好撻死成個 app。 */
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -19,125 +13,30 @@ function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 沙箱
 const geoCache = JSON.parse(lsGet(GEO_CACHE_KEY) || '{}');
 
 const MapX = (() => {
-  let el = null, leaf = null, gmap = null, mode = 'leaflet', key = '';
-  let layer = null;
-  let lastEvts = null, lastRoute = true; // 供 Google 驗證失敗時退回 Leaflet 重畫
+  let el = null, gmap = null, key = '', sdkKey = null;
 
   function init(element) { el = element; }
 
-  /* --- geocode（Nominatim，限速 ≥1.1s/req，含快取與去重） --- */
-  const inflight = new Map();
-  let lastGeo = 0;
-  function geocode(q) {
-    if (!q) return Promise.resolve(null);
-    if (geoCache[q]) return Promise.resolve(geoCache[q]);
-    if (inflight.has(q)) return inflight.get(q);
-    const p = slowLookup(q).then(ll => { inflight.delete(q); return ll; });
-    inflight.set(q, p);
-    return p;
+  function placeholder(html) {
+    if (!el || gmap) return;
+    el.innerHTML = `<div style="display:flex;height:100%;min-height:180px;align-items:center;justify-content:center;text-align:center;padding:20px;color:#6b655e;font-size:14px;line-height:2">${html}</div>`;
   }
-  async function slowLookup(q) {
-    const wait = 1100 - (Date.now() - lastGeo);
-    if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    lastGeo = Date.now();
-    let ll = null;
-    try {
-      const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), { headers: { 'Accept-Language': 'zh' } });
-      const j = await r.json();
-      if (j[0]) { ll = [ +j[0].lat, +j[0].lon ]; geoCache[q] = ll; lsSet(GEO_CACHE_KEY, JSON.stringify(geoCache)); }
-    } catch (e) { /* 離線或被擋：略過 */ }
-    return ll;
-  }
+  const KEY_HINT = `🗺️ 地圖用 <b style="margin:0 4px">Google Maps</b>。<br>撳右上角 ⚙ 旅程設定 → 輸入 Google Maps API key（_maps.googleapis.com_ 需開通 Maps JavaScript API 同 Directions API）<br>填咗 key 就有地圖，同埋先至用到 🚌 查實際班次。`;
 
-  /* 從事件排出可的地點節點與路段 */
-  function nodesAndLegs(evts) {
-    const sorted = [...evts].sort((a, b) => a.startMin - b.startMin);
-    const nodes = [], legs = [];
-    let lastNode = null, pendModes = [], pendMin = 0;
-    for (const e of sorted) {
-      if (e.category === 'transit') { pendModes.push(e.mode || 'train'); pendMin += e.durationMin; continue; }
-      if (e.category === 'stay' && !e.address) continue;
-      const node = { e, ll: geoCache[e.address || e.name] || null };
-      if (lastNode) {
-        const modes = pendModes.length ? pendModes : ['walk'];
-        const allWalk = modes.every(m => m === 'walk');
-        legs.push({ a: lastNode, b: node, mode: allWalk ? 'walk' : modes[modes.length - 1], allWalk, min: pendMin, merged: modes.length });
-      }
-      nodes.push(node); lastNode = node; pendModes = []; pendMin = 0;
-    }
-    return { nodes, legs };
-  }
-
-  async function osrmRoute(a, b) {
-    if (!a || !b) return null;
-    try {
-      const c = new AbortController(); const t = setTimeout(() => c.abort(), 4500);
-      const r = await fetch(`https://router.project-osrm.org/route/v1/foot/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`, { signal: c.signal });
-      clearTimeout(t);
-      const j = await r.json();
-      if (j.routes && j.routes[0]) return j.routes[0].geometry.coordinates.map(p => [p[1], p[0]]);
-    } catch (e) {}
-    return null;
-  }
+  function saveCache(q, lat, lng) { geoCache[q] = [lat, lng]; lsSet(GEO_CACHE_KEY, JSON.stringify(geoCache)); }
 
   const LEG_COLOR = { train:'#4678C5', metro:'#9266C2', shinkansen:'#D8902C', bus:'#3A9B80', walk:'#84909E', taxi:'#D77968', car:'#4678C5', plane:'#9266C2' };
 
-  /* ---------- Leaflet 繪製 ---------- */
-  async function drawLeaflet(evts, showRoute) {
-    if (!leaf) {
-      leaf = L.map(el, { scrollWheelZoom: true, zoomControl: true });
-      L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_BASEMAP_KEY}`,
-        { maxZoom: 18, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © CARTO' }).addTo(leaf);
-      layer = L.layerGroup().addTo(leaf);
-    }
-    layer.clearLayers();
-    const { nodes, legs } = nodesAndLegs(evts);
-    for (const n of nodes) if (!n.ll) n.ll = await geocode(n.e.address || n.e.name);
-    const pts = [];
-    nodes.forEach((n, i) => {
-      if (!n.ll) return;
-      pts.push(n.ll);
-      const mk = L.circleMarker(n.ll, { radius: 8, fillColor: '#fff', color: '#555555', weight: 3 });
-      const label = `${n.e.name}<br><small>${fmtHM(n.e.startMin)}–${fmtHM(n.e.startMin + n.durationMin)}</small>` +
-        `<br><a target="_blank" rel="noopener" href="${navUrl(n.e)}">🧭 導航</a>`;
-      mk.bindPopup(label);
-      mk.on('dblclick', () => window.open(navUrl(n.e), '_blank'));
-      const day = document.querySelector('.tl-station.sel')?.dataset.di;
-      mk.on('click', () => { /* 預覽：置中放大 */ leaf.setView(n.ll, Math.max(leaf.getZoom(), 14), { animate: true }); });
-      mk.addTo(layer);
-      const tag = L.marker(n.ll, { interactive: false, icon: L.divIcon({ className: '', html: `<div class="day-pin" style="background:${catColor(n.e.category)}">${n.e.startMin / 60 | 0}</div>`, iconSize: [12, 12] }) });
-      tag.addTo(layer);
-    });
-    if (showRoute) {
-      for (const lg of legs) {
-        if (!lg.a.ll || !lg.b.ll) continue;
-        let line = null;
-        if (lg.allWalk) line = await osrmRoute(lg.a.ll, lg.b.ll);
-        if (!line) line = [lg.a.ll, lg.b.ll];
-        L.polyline(line, { color: LEG_COLOR[lg.mode] || '#84909E', weight: 4, opacity: .9, dashArray: lg.allWalk ? '2 7' : null }).addTo(layer);
-      }
-    }
-    if (pts.length) leaf.fitBounds(pts, { padding: [40, 40] });
-    else { leaf.setView([35.68, 139.69], 6); }
-    noteFallback(evts.length);
-  }
-  function noteFallback(n) {
-    let a = el.parentElement.querySelector('.maplink');
-    if (!a) { a = document.createElement('div'); a.className = 'maplink'; el.parentElement.insertBefore(a, el.nextSibling); }
-    a.innerHTML = mode === 'leaflet'
-      ? `開源 Leaflet 地圖 · CARTO 灰階底圖（帶免費底圖 key，與 Google Maps key 無關）`
-      : `Google Maps 模式 · 已載入自訂樣式`;
-  }
-
-  /* ---------- Google 模式 ---------- */
+  /* ---------- Google Maps SDK 載入（每頁淨係可以注入一次） ---------- */
   function loadGoogle(k) {
     return new Promise((res, rej) => {
       window.gm_authFailure = () => {
-        key = ''; mode = 'leaflet'; gmap = null;
-        if (el) { el.innerHTML = ''; leaf = null; layer = null; if (lastEvts) drawLeaflet(lastEvts, lastRoute); }
-        toast('Google Maps key 驗證失敗（無效或額度問題），已改用開源地圖');
+        gmap = null;
+        placeholder(`⚠️ Google Maps key <b style="margin:0 4px">驗證失敗</b>（key 無效、限制太窄或額度問題）。<br>喺 ⚙ 旅程設定檢查/換返個 key，改完記得 Ctrl+F5 重新整理。`);
+        toast('Google Maps key 驗證失敗，地圖無法顯示');
       };
-      if (window.__gmapsCb) return res(window.google);
+      if (window.__gmapsCb) { sdkKey = sdkKey || k; return res(window.google); }
+      sdkKey = k;
       window.__gmapsCb = () => res(window.google);
       const s = document.createElement('script');
       s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(k)}&callback=__gmapsCb&loading=async`;
@@ -153,6 +52,7 @@ const MapX = (() => {
     { featureType: 'poi', elementType: 'all', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   ];
+
   async function drawGoogle(evts, showRoute) {
     const gm = await loadGoogle(key);
     if (!gmap) {
@@ -180,14 +80,20 @@ const MapX = (() => {
         fitLater();
       };
       const q = e.address || e.name;
+      const cached = geoCache[q];
+      if (cached) { resolve({ lat: cached[0], lng: cached[1] }); continue; }
       if (gm.maps.places && gm.maps.places.search) {
         gm.maps.places.search({ query: q, fields: ['place_id', 'geometry', 'displayName'] })
-          .then(res => { const p = res?.places?.[0]; if (p) resolve(p.geometry.location); })
+          .then(res => {
+            const p = res?.places?.[0];
+            if (p) { resolve(p.geometry.location); saveCache(q, p.geometry.location.lat(), p.geometry.location.lng()); }
+          })
           .catch(() => {});
       } else {
         const GC = (gm.maps.places && gm.maps.places.Geocoder) || gm.maps.Geocoder;
-        const gc = new GC();
-        gc.geocode({ address: q }, (r, s) => { if (s === 'OK' && r[0]) resolve(r[0].geometry.location); });
+        new GC().geocode({ address: q }, (r, s) => {
+          if (s === 'OK' && r[0]) { resolve(r[0].geometry.location); saveCache(q, r[0].geometry.location.lat(), r[0].geometry.location.lng()); }
+        });
       }
     }
     if (showRoute) {
@@ -200,9 +106,8 @@ const MapX = (() => {
         const allWalk = pends.length && pends.every(p => p.mode === 'walk');
         const travelMode = allWalk ? 'WALKING' : (modeE === 'taxi' || modeE === 'car') ? 'DRIVING'
           : modeE === 'plane' ? 'PLANE' : 'TRANSIT';
-        if (travelMode === 'PLANE') continue; // 航班不請 Directions 算線形
-        const ds = new gm.maps.DirectionsService();
-        ds.route({ origin: prev.address || prev.name, destination: next.address || next.name, travelMode }, (res, status) => {
+        if (travelMode === 'PLANE') continue; // 航班唔使 Directions 畫線
+        new gm.maps.DirectionsService().route({ origin: prev.address || prev.name, destination: next.address || next.name, travelMode }, (res, status) => {
           if (status !== 'OK' || !res?.routes?.[0]) return;
           const leg = res.routes[0].legs[0];
           const pl = new gm.maps.Polyline({ map: gmap, path: leg.overview_path, strokeColor: LEG_COLOR[modeE] || '#84909E', strokeWeight: 4, strokeOpacity: .95 });
@@ -213,30 +118,31 @@ const MapX = (() => {
       }
     }
     if (!any) gmap.setCenter({ lat: 35.68, lng: 139.69 });
-    noteFallback(evts.length);
     return true;
   }
 
   async function showDay(evts, opts = {}) {
     const showRoute = opts.route !== false;
-    lastEvts = evts; lastRoute = showRoute;
-    if (mode === 'google' && key) {
-      try { return await drawGoogle(evts, showRoute); }
-      catch (e) { mode = 'leaflet'; toast('Google Maps 載入失敗，改用開源地圖'); }
+    if (!key) { placeholder(KEY_HINT); return; }
+    try { return await drawGoogle(evts, showRoute); }
+    catch (e) {
+      placeholder('⚠️ <b style="margin:0 4px">Google Maps 載入失敗</b>（網絡被擋、VPN／防火牆，或 key 問題）。<br>關埋 VPN／擴充再 Ctrl+F5；檢查 ⚙ 設定入面個 key。');
+      toast('Google Maps 載入失敗：地圖暫時無顯示');
     }
-    await drawLeaflet(evts, showRoute);
   }
 
   async function setKey(k) {
-    key = (k || '').trim();
-    mode = key ? 'google' : 'leaflet';
-    if (key) { try { await loadGoogle(key); } catch (e) { mode = 'leaflet'; } }
-    if (mode === 'leaflet' && !leaf && el) { await drawLeaflet([], false); }
+    const nk = (k || '').trim();
+    if (nk === key) return;
+    key = nk;
+    if (!key) { gmap = null; placeholder(KEY_HINT); return; }
+    if (window.__gmapsCb && key !== sdkKey) { toast('key 改咗；Ctrl+F5 重新整理先至會用新 key 畫地圖'); return; }
+    try { await loadGoogle(key); } catch (e) { /* authFailure／載入失敗由 gm_authFailure／showDay 顯示 */ }
   }
 
   /* A→B 公共交通班次（Google Directions TRANSIT）：幾個方案一次過顯示，
-     等於「miss 咗呢班，接住仲有邊班」；出發時間可將來未來任何一刻。
-     冇 Google（leaflet 模式）就回 NO_KEY，由 app.js 彈提示。 */
+     等於「miss 咗呢班，接住仲有邊班」；出發時間可揀未來任何一刻。
+     無 Google SDK（未填/未載入 key）就回 NO_KEY，由 app.js 彈提示。 */
   function transitSearch(qa, qb, departMs) {
     return new Promise(resolve => {
       const g = window.google;
@@ -271,7 +177,7 @@ const MapX = (() => {
     });
   }
 
-  return { init, showDay, setKey, transitSearch, get mode() { return mode; } };
+  return { init, showDay, setKey, transitSearch, get mode() { return (window.google && window.google.maps && window.google.maps.DirectionsService) ? 'google' : 'none'; } };
 })();
 
 function navUrl(e) {

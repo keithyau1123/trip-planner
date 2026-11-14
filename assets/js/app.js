@@ -955,7 +955,7 @@ function tzHM(ms) {
   const d = new Date(ms); return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
 }
 function openTransit() {
-  if (!transitAvailable()) { toast('搵實際班次要用 Google Maps key：喺 ⚙ 設定輸入 key（專案要開通 Directions API）；開源地圖淨係畫到線，查唔到車班次'); return; }
+  if (!transitAvailable()) { toast('查實際班次要用 Google Maps key：喺 ⚙ 設定輸入 key（專案要開通 Directions API）'); return; }
   const evts = evSorted(state.events.filter(e => transitQuery(e)));
   if (evts.length < 2) { toast('最少要有兩個有名稱／地址嘅地點先至用到（地點編輯入面可以填地址）'); return; }
   const mk = (sel, wantId) => {

@@ -7,7 +7,6 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23F6D27A' stroke='%233E3A39' stroke-width='6'/%3E%3Ctext x='52' y='74' font-size='58' text-anchor='middle'%3E%F0%9F%9A%84%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn+One&display=swap">
-
 <?!= include('css') ?>
 </head>
 <body>
@@ -247,8 +246,8 @@
       </label>
       <label>每日最早出發<input name="dayStart" type="time" value="08:30"></label>
       <label>每日最晚返回<input name="dayEnd" type="time" value="21:30"></label>
-      <label>Google Maps API Key（選填；有 key 時地圖改用 Google 自訂樣式＋ Directions）
-        <input name="mapsKey" type="password" placeholder="AIza…留空則用開源地圖">
+      <label>Google Maps API Key（地圖必需；專案需開通 Maps JavaScript API + Directions API）
+        <input name="mapsKey" type="password" placeholder="AIza…（未填時地圖會顯示提示）">
       </label>
       <div class="modal-actions">
         <button type="button" class="btn" id="settingsCancelBtn">取消</button>
@@ -287,7 +286,6 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<?!= include('js_leaflet') ?>
 <?!= include('js_svg') ?>
 <?!= include('js_map') ?>
 <script>var USER_EMAIL = <?!= JSON.stringify(_email ? _email : '') ?>;</script>
